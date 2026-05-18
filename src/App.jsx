@@ -195,7 +195,7 @@ function App() {
         </section>
 
         <button className="calculateBtn" onClick={calculateResults}>
-          ⚡ Kalkulo Riskun & Fitimin
+           Kalkulo Riskun & Fitimin
         </button>
 
         <section className="summary">

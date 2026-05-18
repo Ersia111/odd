@@ -290,4 +290,91 @@ td {
   .eventNumbers {
     flex-direction: column;
   }
+  .tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.tabs button {
+  background: #111820;
+  color: white;
+  border: 1px solid #26313a;
+}
+
+.tabs .activeTab {
+  background: #ffbd35;
+  color: #080c0f;
+}
+
+.analysisGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.analysisCard {
+  background: #111820;
+  border: 1px solid #26313a;
+  padding: 22px;
+  border-radius: 10px;
+}
+
+.analysisCard span {
+  display: block;
+  color: #8b95a1;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.analysisCard strong {
+  color: #ffbd35;
+  font-size: 24px;
+}
+
+.dangerCard strong {
+  color: #ef4444;
+}
+
+.scenarioGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.scenarioResult {
+  margin-top: 20px;
+  background: #111820;
+  border: 1px solid #26313a;
+  padding: 22px;
+  border-radius: 10px;
+}
+
+.scenarioResult h3 {
+  margin-top: 0;
+  color: #ffbd35;
+}
+
+.scenarioResult p {
+  color: #d1d5db;
+}
+
+.scenarioResult strong {
+  display: block;
+  margin-top: 12px;
+  font-size: 24px;
+  color: #ffbd35;
+}
+
+@media (max-width: 850px) {
+  .analysisGrid,
+  .scenarioGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tabs {
+    flex-direction: column;
+  }
+}
 }

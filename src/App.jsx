@@ -1,24 +1,24 @@
 import { useState } from "react";
 import "./App.css";
 
-function cartesianCombinations(matches) {
+function generateMatchCombinations(matchGroups) {
   const results = [];
 
-  function backtrack(index, current) {
-    if (current.length > 0) {
-      results.push([...current]);
+  function backtrack(index, currentCombo) {
+    if (currentCombo.length > 0) {
+      results.push([...currentCombo]);
     }
 
-    for (let i = index; i < matches.length; i++) {
-      for (const option of matches[i].options) {
-        current.push({
-          matchName: matches[i].name,
-          optionName: option.name,
-          odd: Number(option.odd),
+    for (let i = index; i < matchGroups.length; i++) {
+      for (const option of matchGroups[i].options) {
+        currentCombo.push({
+          matchName: matchGroups[i].matchName,
+          prediction: option.prediction,
+          odd: option.odd,
         });
 
-        backtrack(i + 1, current);
-        current.pop();
+        backtrack(i + 1, currentCombo);
+        currentCombo.pop();
       }
     }
   }
@@ -28,111 +28,70 @@ function cartesianCombinations(matches) {
 }
 
 function App() {
-  const [matchName, setMatchName] = useState("");
-  const [matches, setMatches] = useState([]);
+  const [eventName, setEventName] = useState("");
+  const [prediction, setPrediction] = useState("");
+  const [odd, setOdd] = useState("");
   const [stake, setStake] = useState(10);
+
+  const [events, setEvents] = useState([]);
   const [results, setResults] = useState([]);
 
-  const addMatch = () => {
-    if (!matchName.trim()) {
-      alert("Vendos emrin e ndeshjes.");
+  const addEvent = () => {
+    if (!eventName.trim() || !prediction.trim() || Number(odd) <= 1) {
+      alert("Plotëso ndeshjen, rezultatin dhe koeficientin saktë.");
       return;
     }
 
-    setMatches([
-      ...matches,
-      {
-        id: Date.now(),
-        name: matchName,
-        options: [],
-      },
-    ]);
+    const newEvent = {
+      id: Date.now(),
+      matchName: eventName.trim(),
+      prediction: prediction.trim(),
+      odd: Number(odd),
+    };
 
-    setMatchName("");
+    setEvents([...events, newEvent]);
+    setEventName("");
+    setPrediction("");
+    setOdd("");
     setResults([]);
   };
 
-  const removeMatch = (matchId) => {
-    setMatches(matches.filter((match) => match.id !== matchId));
+  const removeEvent = (id) => {
+    setEvents(events.filter((event) => event.id !== id));
     setResults([]);
   };
 
-  const addOption = (matchId) => {
-    setMatches(
-      matches.map((match) =>
-        match.id === matchId
-          ? {
-              ...match,
-              options: [
-                ...match.options,
-                {
-                  id: Date.now(),
-                  name: "",
-                  odd: "",
-                },
-              ],
-            }
-          : match
-      )
-    );
-    setResults([]);
-  };
-
-  const updateOption = (matchId, optionId, field, value) => {
-    setMatches(
-      matches.map((match) =>
-        match.id === matchId
-          ? {
-              ...match,
-              options: match.options.map((option) =>
-                option.id === optionId
-                  ? {
-                      ...option,
-                      [field]: value,
-                    }
-                  : option
-              ),
-            }
-          : match
-      )
-    );
-  };
-
-  const removeOption = (matchId, optionId) => {
-    setMatches(
-      matches.map((match) =>
-        match.id === matchId
-          ? {
-              ...match,
-              options: match.options.filter((option) => option.id !== optionId),
-            }
-          : match
-      )
-    );
-    setResults([]);
-  };
-
-  const calculate = () => {
-    const cleanMatches = matches
-      .map((match) => ({
-        ...match,
-        options: match.options.filter(
-          (option) => option.name.trim() && Number(option.odd) > 1
-        ),
-      }))
-      .filter((match) => match.options.length > 0);
-
-    if (cleanMatches.length === 0) {
-      alert("Shto të paktën një ndeshje me opsione të vlefshme.");
+  const calculateResults = () => {
+    if (events.length === 0) {
+      alert("Shto të paktën një ndeshje me rezultat dhe koeficient.");
       return;
     }
 
-    const combos = cartesianCombinations(cleanMatches);
+    const groupedMatches = Object.values(
+      events.reduce((acc, event) => {
+        if (!acc[event.matchName]) {
+          acc[event.matchName] = {
+            matchName: event.matchName,
+            options: [],
+          };
+        }
 
-    const calculated = combos.map((combo) => {
+        acc[event.matchName].options.push({
+          prediction: event.prediction,
+          odd: event.odd,
+        });
+
+        return acc;
+      }, {})
+    );
+
+    const allCombinations = generateMatchCombinations(groupedMatches);
+
+    const calculated = allCombinations.map((combo) => {
       const totalOdd = combo.reduce((acc, item) => acc * item.odd, 1);
       const potentialReturn = Number(stake) * totalOdd;
       const netProfit = potentialReturn - Number(stake);
+      const maxLoss = Number(stake);
       const returnPercentage = (netProfit / Number(stake)) * 100;
 
       return {
@@ -142,7 +101,7 @@ function App() {
         stake: Number(stake),
         potentialReturn,
         netProfit,
-        maxLoss: Number(stake),
+        maxLoss,
         returnPercentage,
       };
     });
@@ -152,159 +111,148 @@ function App() {
   };
 
   const totalMaxLoss = results.length * Number(stake);
-  const maxProfit =
-    results.length > 0 ? Math.max(...results.map((r) => r.netProfit)) : 0;
-  const maxReturn =
-    results.length > 0 ? Math.max(...results.map((r) => r.potentialReturn)) : 0;
+
+  const maxPossibleProfit =
+    results.length > 0 ? Math.max(...results.map((item) => item.netProfit)) : 0;
+
+  const maxPossibleReturn =
+    results.length > 0
+      ? Math.max(...results.map((item) => item.potentialReturn))
+      : 0;
 
   return (
     <div className="app">
       <div className="container">
-        <header>
+        <header className="header">
           <h1>
-            Ersia<span>Dashuria</span>
+            ERSIA<span>DASHURIA</span>
           </h1>
-          <p>Simulator kombinimesh me shumë opsione për çdo event</p>
+          <p>Kalkulator kombinimesh, koeficientësh dhe risku</p>
         </header>
 
-        <section className="panel">
-          <h2>Settings</h2>
+        <section className="section">
+          <div className="titleLine">
+            <h2>Shto Rezultat</h2>
+          </div>
 
-          <div className="topGrid">
+          <div className="formGrid">
             <div>
-              <label>Shuma për kombinim</label>
+              <label>Ndeshja</label>
+              <input
+                value={eventName}
+                onChange={(e) => setEventName(e.target.value)}
+                placeholder="p.sh. Real Madrid vs Barcelona"
+              />
+            </div>
+
+            <div>
+              <label>Rezultati / Opsioni</label>
+              <input
+                value={prediction}
+                onChange={(e) => setPrediction(e.target.value)}
+                placeholder="p.sh. 1, X, 2, Over 2.5"
+              />
+            </div>
+
+            <div>
+              <label>Koeficienti</label>
               <input
                 type="number"
-                min="1"
-                value={stake}
-                onChange={(e) => setStake(e.target.value)}
+                step="0.01"
+                value={odd}
+                onChange={(e) => setOdd(e.target.value)}
+                placeholder="p.sh. 2.50"
               />
             </div>
 
             <div>
-              <label>Emri i ndeshjes</label>
+              <label>Shuma për Kombinim (€)</label>
               <input
-                value={matchName}
-                onChange={(e) => setMatchName(e.target.value)}
-                placeholder="p.sh. Match 1"
+                type="number"
+                step="0.01"
+                value={stake}
+                onChange={(e) => setStake(e.target.value)}
+                placeholder="p.sh. 10"
               />
             </div>
 
-            <button onClick={addMatch}>+ Shto Ndeshje</button>
+            <button className="addBtn" onClick={addEvent}>
+              + Shto
+            </button>
           </div>
         </section>
 
-        <section className="matches">
-          {matches.length === 0 ? (
+        <section className="section">
+          <div className="titleLine">
+            <h2>Rezultatet e Shtuara</h2>
+          </div>
+
+          {events.length === 0 ? (
             <div className="empty">
-              <h3>Nuk ka ndeshje ende</h3>
-              <p>Shto një ndeshje dhe pastaj vendos opsionet e saj.</p>
+              <div className="icon">🎯</div>
+              <p>Nuk ka rezultate të shtuara ende.</p>
+              <span>Shto ndeshjen, rezultatin dhe koeficientin.</span>
             </div>
           ) : (
-            matches.map((match, index) => (
-              <div className="matchCard" key={match.id}>
-                <div className="matchHeader">
-                  <h3>
-                    {index + 1}. {match.name}
-                  </h3>
-
+            <div className="eventList">
+              {events.map((event, index) => (
+                <div className="eventCard" key={event.id}>
                   <div>
-                    <button onClick={() => addOption(match.id)}>
-                      + Opsion
-                    </button>
-
-                    <button
-                      className="danger"
-                      onClick={() => removeMatch(match.id)}
-                    >
-                      Hiq
-                    </button>
+                    <strong>
+                      {index + 1}. {event.matchName}
+                    </strong>
+                    <p>{event.prediction}</p>
                   </div>
+
+                  <div className="eventNumbers">
+                    <span>Odd: {event.odd}</span>
+                  </div>
+
+                  <button onClick={() => removeEvent(event.id)}>Hiq</button>
                 </div>
-
-                {match.options.length === 0 ? (
-                  <p className="hint">Shto opsione për këtë ndeshje.</p>
-                ) : (
-                  match.options.map((option) => (
-                    <div className="optionRow" key={option.id}>
-                      <input
-                        value={option.name}
-                        placeholder="Opsioni p.sh. 1, X, 2, Over 2.5"
-                        onChange={(e) =>
-                          updateOption(
-                            match.id,
-                            option.id,
-                            "name",
-                            e.target.value
-                          )
-                        }
-                      />
-
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={option.odd}
-                        placeholder="Koef."
-                        onChange={(e) =>
-                          updateOption(
-                            match.id,
-                            option.id,
-                            "odd",
-                            e.target.value
-                          )
-                        }
-                      />
-
-                      <button
-                        className="danger"
-                        onClick={() => removeOption(match.id, option.id)}
-                      >
-                        X
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </section>
 
-        <button className="calculateBtn" onClick={calculate}>
-          Kalkulo të gjitha kombinimet
+        <button className="calculateBtn" onClick={calculateResults}>
+          Kalkulo Kombinimet
         </button>
 
         <section className="summary">
           <div>
-            <span>Ndeshje</span>
-            <strong>{matches.length}</strong>
+            <span>Rezultate</span>
+            <strong>{events.length}</strong>
           </div>
 
           <div>
-            <span>Kombinime</span>
+            <span>Kombinime Totale</span>
             <strong>{results.length}</strong>
           </div>
 
           <div>
-            <span>Risk maksimal total</span>
-            <strong>{totalMaxLoss.toFixed(2)}</strong>
+            <span>Humbja Maksimale</span>
+            <strong>{totalMaxLoss.toFixed(2)} €</strong>
           </div>
 
           <div>
-            <span>Fitim maksimal</span>
-            <strong>{maxProfit.toFixed(2)}</strong>
+            <span>Fitimi Maksimal</span>
+            <strong>{maxPossibleProfit.toFixed(2)} €</strong>
           </div>
 
           <div>
-            <span>Kthim maksimal</span>
-            <strong>{maxReturn.toFixed(2)}</strong>
+            <span>Kthimi Maksimal</span>
+            <strong>{maxPossibleReturn.toFixed(2)} €</strong>
           </div>
         </section>
 
-        <section className="panel">
-          <h2>Rezultatet</h2>
+        <section className="section">
+          <div className="titleLine">
+            <h2>Të Gjitha Kombinimet</h2>
+          </div>
 
           {results.length === 0 ? (
-            <p className="hint">Kliko kalkulo për të parë kombinimet.</p>
+            <p className="noResults">Kliko “Kalkulo” për të parë rezultatet.</p>
           ) : (
             <div className="tableWrapper">
               <table>
@@ -313,11 +261,11 @@ function App() {
                     <th>#</th>
                     <th>Lloji</th>
                     <th>Kombinimi</th>
-                    <th>Koef. total</th>
+                    <th>Odd Total</th>
                     <th>Shuma</th>
                     <th>Kthimi</th>
-                    <th>Fitimi</th>
-                    <th>Risk</th>
+                    <th>Fitimi Neto</th>
+                    <th>Risk Max</th>
                     <th>%</th>
                   </tr>
                 </thead>
@@ -328,18 +276,18 @@ function App() {
                       <td>{index + 1}</td>
                       <td>{item.type}</td>
                       <td>
-                        {item.combo.map((c, i) => (
+                        {item.combo.map((event, i) => (
                           <div className="comboItem" key={i}>
-                            <strong>{c.matchName}</strong>: {c.optionName} (
-                            {c.odd})
+                            <strong>{event.matchName}</strong> -{" "}
+                            {event.prediction} ({event.odd})
                           </div>
                         ))}
                       </td>
                       <td>{item.totalOdd.toFixed(2)}</td>
-                      <td>{item.stake.toFixed(2)}</td>
-                      <td>{item.potentialReturn.toFixed(2)}</td>
-                      <td>{item.netProfit.toFixed(2)}</td>
-                      <td>{item.maxLoss.toFixed(2)}</td>
+                      <td>{item.stake.toFixed(2)} €</td>
+                      <td>{item.potentialReturn.toFixed(2)} €</td>
+                      <td>{item.netProfit.toFixed(2)} €</td>
+                      <td>{item.maxLoss.toFixed(2)} €</td>
                       <td>{item.returnPercentage.toFixed(2)}%</td>
                     </tr>
                   ))}

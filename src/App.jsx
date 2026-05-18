@@ -28,10 +28,17 @@ function generateMatchCombinations(matchGroups) {
 }
 
 function App() {
+  const [page, setPage] = useState("calculator");
+
   const [eventName, setEventName] = useState("");
   const [prediction, setPrediction] = useState("");
   const [odd, setOdd] = useState("");
-  const [stake, setStake] = useState(10);
+  const [totalBudget, setTotalBudget] = useState(1000);
+
+  const [winChance, setWinChance] = useState(30);
+  const [targetProfit, setTargetProfit] = useState(1000);
+  const [lossChance, setLossChance] = useState(70);
+  const [expectedLoss, setExpectedLoss] = useState(200);
 
   const [events, setEvents] = useState([]);
   const [results, setResults] = useState([]);
@@ -42,14 +49,16 @@ function App() {
       return;
     }
 
-    const newEvent = {
-      id: Date.now(),
-      matchName: eventName.trim(),
-      prediction: prediction.trim(),
-      odd: Number(odd),
-    };
+    setEvents([
+      ...events,
+      {
+        id: Date.now(),
+        matchName: eventName.trim(),
+        prediction: prediction.trim(),
+        odd: Number(odd),
+      },
+    ]);
 
-    setEvents([...events, newEvent]);
     setEventName("");
     setPrediction("");
     setOdd("");
@@ -63,7 +72,7 @@ function App() {
 
   const calculateResults = () => {
     if (events.length === 0) {
-      alert("Shto të paktën një ndeshje me rezultat dhe koeficient.");
+      alert("Shto të paktën një rezultat.");
       return;
     }
 
@@ -86,22 +95,23 @@ function App() {
     );
 
     const allCombinations = generateMatchCombinations(groupedMatches);
+    const amountPerCombination =
+      allCombinations.length > 0 ? Number(totalBudget) / allCombinations.length : 0;
 
     const calculated = allCombinations.map((combo) => {
       const totalOdd = combo.reduce((acc, item) => acc * item.odd, 1);
-      const potentialReturn = Number(stake) * totalOdd;
-      const netProfit = potentialReturn - Number(stake);
-      const maxLoss = Number(stake);
-      const returnPercentage = (netProfit / Number(stake)) * 100;
+      const potentialReturn = amountPerCombination * totalOdd;
+      const netProfit = potentialReturn - amountPerCombination;
+      const returnPercentage = (netProfit / amountPerCombination) * 100;
 
       return {
         combo,
         type: combo.length === 1 ? "Njeshe" : `${combo.length}-she`,
         totalOdd,
-        stake: Number(stake),
+        stake: amountPerCombination,
         potentialReturn,
         netProfit,
-        maxLoss,
+        maxLoss: amountPerCombination,
         returnPercentage,
       };
     });
@@ -110,15 +120,23 @@ function App() {
     setResults(calculated);
   };
 
-  const totalMaxLoss = results.length * Number(stake);
+  const totalCombinations = results.length;
+  const amountPerCombination =
+    totalCombinations > 0 ? Number(totalBudget) / totalCombinations : 0;
 
-  const maxPossibleProfit =
+  const maximumLoss = Number(totalBudget);
+
+  const highestPossibleReturn =
+    results.length > 0 ? Math.max(...results.map((item) => item.potentialReturn)) : 0;
+
+  const highestNetProfit =
     results.length > 0 ? Math.max(...results.map((item) => item.netProfit)) : 0;
 
-  const maxPossibleReturn =
-    results.length > 0
-      ? Math.max(...results.map((item) => item.potentialReturn))
-      : 0;
+  const breakEvenPoint = Number(totalBudget);
+
+  const expectedValue =
+    (Number(winChance) / 100) * Number(targetProfit) -
+    (Number(lossChance) / 100) * Number(expectedLoss);
 
   return (
     <div className="app">
@@ -127,175 +145,308 @@ function App() {
           <h1>
             ERSIA<span>DASHURIA</span>
           </h1>
-          <p>Kalkulator kombinimesh, koeficientësh dhe risku</p>
+          <p>Risk simulator & combination dashboard</p>
         </header>
 
-        <section className="section">
-          <div className="titleLine">
-            <h2>Shto Rezultat</h2>
-          </div>
+        <div className="tabs">
+          <button
+            className={page === "calculator" ? "activeTab" : ""}
+            onClick={() => setPage("calculator")}
+          >
+            Calculator
+          </button>
 
-          <div className="formGrid">
-            <div>
-              <label>Ndeshja</label>
-              <input
-                value={eventName}
-                onChange={(e) => setEventName(e.target.value)}
-                placeholder="p.sh. Real Madrid vs Barcelona"
-              />
-            </div>
+          <button
+            className={page === "analysis" ? "activeTab" : ""}
+            onClick={() => setPage("analysis")}
+          >
+            Analysis Dashboard
+          </button>
+        </div>
 
-            <div>
-              <label>Rezultati / Opsioni</label>
-              <input
-                value={prediction}
-                onChange={(e) => setPrediction(e.target.value)}
-                placeholder="p.sh. 1, X, 2, Over 2.5"
-              />
-            </div>
+        {page === "calculator" && (
+          <>
+            <section className="section">
+              <div className="titleLine">
+                <h2>Shto Rezultat</h2>
+              </div>
 
-            <div>
-              <label>Koeficienti</label>
-              <input
-                type="number"
-                step="0.01"
-                value={odd}
-                onChange={(e) => setOdd(e.target.value)}
-                placeholder="p.sh. 2.50"
-              />
-            </div>
-
-            <div>
-              <label>Shuma për Kombinim (€)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={stake}
-                onChange={(e) => setStake(e.target.value)}
-                placeholder="p.sh. 10"
-              />
-            </div>
-
-            <button className="addBtn" onClick={addEvent}>
-              + Shto
-            </button>
-          </div>
-        </section>
-
-        <section className="section">
-          <div className="titleLine">
-            <h2>Rezultatet e Shtuara</h2>
-          </div>
-
-          {events.length === 0 ? (
-            <div className="empty">
-              <div className="icon">🎯</div>
-              <p>Nuk ka rezultate të shtuara ende.</p>
-              <span>Shto ndeshjen, rezultatin dhe koeficientin.</span>
-            </div>
-          ) : (
-            <div className="eventList">
-              {events.map((event, index) => (
-                <div className="eventCard" key={event.id}>
-                  <div>
-                    <strong>
-                      {index + 1}. {event.matchName}
-                    </strong>
-                    <p>{event.prediction}</p>
-                  </div>
-
-                  <div className="eventNumbers">
-                    <span>Odd: {event.odd}</span>
-                  </div>
-
-                  <button onClick={() => removeEvent(event.id)}>Hiq</button>
+              <div className="formGrid">
+                <div>
+                  <label>Ndeshja</label>
+                  <input
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    placeholder="p.sh. Real Madrid vs Barcelona"
+                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
 
-        <button className="calculateBtn" onClick={calculateResults}>
-          Kalkulo Kombinimet
-        </button>
+                <div>
+                  <label>Rezultati / Opsioni</label>
+                  <input
+                    value={prediction}
+                    onChange={(e) => setPrediction(e.target.value)}
+                    placeholder="p.sh. 1, X, 2, Over 2.5"
+                  />
+                </div>
 
-        <section className="summary">
-          <div>
-            <span>Rezultate</span>
-            <strong>{events.length}</strong>
-          </div>
+                <div>
+                  <label>Koeficienti</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={odd}
+                    onChange={(e) => setOdd(e.target.value)}
+                    placeholder="p.sh. 2.50"
+                  />
+                </div>
 
-          <div>
-            <span>Kombinime Totale</span>
-            <strong>{results.length}</strong>
-          </div>
+                <div>
+                  <label>Total Budget (€)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={totalBudget}
+                    onChange={(e) => setTotalBudget(Number(e.target.value))}
+                  />
+                </div>
 
-          <div>
-            <span>Humbja Maksimale</span>
-            <strong>{totalMaxLoss.toFixed(2)} €</strong>
-          </div>
+                <button className="addBtn" onClick={addEvent}>
+                  + Shto
+                </button>
+              </div>
+            </section>
 
-          <div>
-            <span>Fitimi Maksimal</span>
-            <strong>{maxPossibleProfit.toFixed(2)} €</strong>
-          </div>
+            <section className="section">
+              <div className="titleLine">
+                <h2>Rezultatet e Shtuara</h2>
+              </div>
 
-          <div>
-            <span>Kthimi Maksimal</span>
-            <strong>{maxPossibleReturn.toFixed(2)} €</strong>
-          </div>
-        </section>
+              {events.length === 0 ? (
+                <div className="empty">
+                  <div className="icon">🎯</div>
+                  <p>Nuk ka rezultate të shtuara ende.</p>
+                  <span>Shto ndeshjen, rezultatin dhe koeficientin.</span>
+                </div>
+              ) : (
+                <div className="eventList">
+                  {events.map((event, index) => (
+                    <div className="eventCard" key={event.id}>
+                      <div>
+                        <strong>
+                          {index + 1}. {event.matchName}
+                        </strong>
+                        <p>{event.prediction}</p>
+                      </div>
 
-        <section className="section">
-          <div className="titleLine">
-            <h2>Të Gjitha Kombinimet</h2>
-          </div>
+                      <div className="eventNumbers">
+                        <span>Odd: {event.odd}</span>
+                      </div>
 
-          {results.length === 0 ? (
-            <p className="noResults">Kliko “Kalkulo” për të parë rezultatet.</p>
-          ) : (
-            <div className="tableWrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Lloji</th>
-                    <th>Kombinimi</th>
-                    <th>Odd Total</th>
-                    <th>Shuma</th>
-                    <th>Kthimi</th>
-                    <th>Fitimi Neto</th>
-                    <th>Risk Max</th>
-                    <th>%</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {results.map((item, index) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>{item.type}</td>
-                      <td>
-                        {item.combo.map((event, i) => (
-                          <div className="comboItem" key={i}>
-                            <strong>{event.matchName}</strong> -{" "}
-                            {event.prediction} ({event.odd})
-                          </div>
-                        ))}
-                      </td>
-                      <td>{item.totalOdd.toFixed(2)}</td>
-                      <td>{item.stake.toFixed(2)} €</td>
-                      <td>{item.potentialReturn.toFixed(2)} €</td>
-                      <td>{item.netProfit.toFixed(2)} €</td>
-                      <td>{item.maxLoss.toFixed(2)} €</td>
-                      <td>{item.returnPercentage.toFixed(2)}%</td>
-                    </tr>
+                      <button onClick={() => removeEvent(event.id)}>Hiq</button>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                </div>
+              )}
+            </section>
+
+            <button className="calculateBtn" onClick={calculateResults}>
+              Kalkulo Kombinimet
+            </button>
+
+            <section className="summary">
+              <div>
+                <span>Total Budget</span>
+                <strong>{Number(totalBudget).toFixed(2)} €</strong>
+              </div>
+
+              <div>
+                <span>Kombinime</span>
+                <strong>{totalCombinations}</strong>
+              </div>
+
+              <div>
+                <span>Shuma për Kombinim</span>
+                <strong>{amountPerCombination.toFixed(2)} €</strong>
+              </div>
+
+              <div>
+                <span>Humbja Maksimale</span>
+                <strong>{maximumLoss.toFixed(2)} €</strong>
+              </div>
+
+              <div>
+                <span>Fitimi Maksimal</span>
+                <strong>{highestNetProfit.toFixed(2)} €</strong>
+              </div>
+            </section>
+
+            <section className="section">
+              <div className="titleLine">
+                <h2>Të Gjitha Kombinimet</h2>
+              </div>
+
+              {results.length === 0 ? (
+                <p className="noResults">Kliko “Kalkulo” për të parë rezultatet.</p>
+              ) : (
+                <div className="tableWrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Lloji</th>
+                        <th>Kombinimi</th>
+                        <th>Odd Total</th>
+                        <th>Shuma</th>
+                        <th>Kthimi</th>
+                        <th>Fitimi Neto</th>
+                        <th>Risk Max</th>
+                        <th>%</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {results.map((item, index) => (
+                        <tr key={index}>
+                          <td>{index + 1}</td>
+                          <td>{item.type}</td>
+                          <td>
+                            {item.combo.map((event, i) => (
+                              <div className="comboItem" key={i}>
+                                <strong>{event.matchName}</strong> -{" "}
+                                {event.prediction} ({event.odd})
+                              </div>
+                            ))}
+                          </td>
+                          <td>{item.totalOdd.toFixed(2)}</td>
+                          <td>{item.stake.toFixed(2)} €</td>
+                          <td>{item.potentialReturn.toFixed(2)} €</td>
+                          <td>{item.netProfit.toFixed(2)} €</td>
+                          <td>{item.maxLoss.toFixed(2)} €</td>
+                          <td>{item.returnPercentage.toFixed(2)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </>
+        )}
+
+        {page === "analysis" && (
+          <>
+            <section className="section">
+              <div className="titleLine">
+                <h2>Analysis Dashboard</h2>
+              </div>
+
+              <div className="analysisGrid">
+                <div className="analysisCard">
+                  <span>Total Budget</span>
+                  <strong>{Number(totalBudget).toFixed(2)} €</strong>
+                </div>
+
+                <div className="analysisCard">
+                  <span>Total Combinations</span>
+                  <strong>{totalCombinations}</strong>
+                </div>
+
+                <div className="analysisCard">
+                  <span>Amount Per Combination</span>
+                  <strong>{amountPerCombination.toFixed(2)} €</strong>
+                </div>
+
+                <div className="analysisCard dangerCard">
+                  <span>Maximum Loss</span>
+                  <strong>{maximumLoss.toFixed(2)} €</strong>
+                </div>
+
+                <div className="analysisCard">
+                  <span>Highest Possible Return</span>
+                  <strong>{highestPossibleReturn.toFixed(2)} €</strong>
+                </div>
+
+                <div className="analysisCard">
+                  <span>Highest Net Profit</span>
+                  <strong>{highestNetProfit.toFixed(2)} €</strong>
+                </div>
+
+                <div className="analysisCard">
+                  <span>Worst Case Scenario</span>
+                  <strong>-{maximumLoss.toFixed(2)} €</strong>
+                </div>
+
+                <div className="analysisCard">
+                  <span>Best Case Scenario</span>
+                  <strong>+{highestNetProfit.toFixed(2)} €</strong>
+                </div>
+
+                <div className="analysisCard">
+                  <span>Break-even Point</span>
+                  <strong>{breakEvenPoint.toFixed(2)} €</strong>
+                </div>
+              </div>
+            </section>
+
+            <section className="section">
+              <div className="titleLine">
+                <h2>Manual Probability Scenario</h2>
+              </div>
+
+              <div className="scenarioGrid">
+                <div>
+                  <label>Win Chance %</label>
+                  <input
+                    type="number"
+                    value={winChance}
+                    onChange={(e) => setWinChance(Number(e.target.value))}
+                  />
+                </div>
+
+                <div>
+                  <label>Target Profit €</label>
+                  <input
+                    type="number"
+                    value={targetProfit}
+                    onChange={(e) => setTargetProfit(Number(e.target.value))}
+                  />
+                </div>
+
+                <div>
+                  <label>Loss Chance %</label>
+                  <input
+                    type="number"
+                    value={lossChance}
+                    onChange={(e) => setLossChance(Number(e.target.value))}
+                  />
+                </div>
+
+                <div>
+                  <label>Expected Loss €</label>
+                  <input
+                    type="number"
+                    value={expectedLoss}
+                    onChange={(e) => setExpectedLoss(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <div className="scenarioResult">
+                <h3>Scenario Result</h3>
+                <p>
+                  {winChance}% scenario: +{Number(targetProfit).toFixed(2)} €
+                </p>
+                <p>
+                  {lossChance}% scenario: -{Number(expectedLoss).toFixed(2)} €
+                </p>
+                <strong>
+                  Expected Value: {expectedValue.toFixed(2)} €
+                </strong>
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,237 +1,310 @@
 import { useState } from "react";
 import "./App.css";
 
-function generateCombinations(items) {
-  const result = [];
+function cartesianCombinations(matches) {
+  const results = [];
 
-  function backtrack(start, combo) {
-    if (combo.length > 0) {
-      result.push([...combo]);
+  function backtrack(index, current) {
+    if (current.length > 0) {
+      results.push([...current]);
     }
 
-    for (let i = start; i < items.length; i++) {
-      combo.push(items[i]);
-      backtrack(i + 1, combo);
-      combo.pop();
+    for (let i = index; i < matches.length; i++) {
+      for (const option of matches[i].options) {
+        current.push({
+          matchName: matches[i].name,
+          optionName: option.name,
+          odd: Number(option.odd),
+        });
+
+        backtrack(i + 1, current);
+        current.pop();
+      }
     }
   }
 
   backtrack(0, []);
-  return result;
+  return results;
 }
 
 function App() {
-  const [eventName, setEventName] = useState("");
-  const [prediction, setPrediction] = useState("");
-  const [odd, setOdd] = useState("");
-  const [stake, setStake] = useState("");
-
-  const [events, setEvents] = useState([]);
+  const [matchName, setMatchName] = useState("");
+  const [matches, setMatches] = useState([]);
+  const [stake, setStake] = useState(10);
   const [results, setResults] = useState([]);
 
-  const addEvent = () => {
-    if (!eventName || !prediction || Number(odd) <= 1 || Number(stake) <= 0) {
-      alert("Plotëso të gjitha fushat saktë.");
+  const addMatch = () => {
+    if (!matchName.trim()) {
+      alert("Vendos emrin e ndeshjes.");
       return;
     }
 
-    const newEvent = {
-      id: Date.now(),
-      name: eventName,
-      prediction,
-      odd: Number(odd),
-      stake: Number(stake),
-    };
+    setMatches([
+      ...matches,
+      {
+        id: Date.now(),
+        name: matchName,
+        options: [],
+      },
+    ]);
 
-    setEvents([...events, newEvent]);
-    setEventName("");
-    setPrediction("");
-    setOdd("");
-    setStake("");
-  };
-
-  const removeEvent = (id) => {
-    setEvents(events.filter((event) => event.id !== id));
+    setMatchName("");
     setResults([]);
   };
 
-  const calculateResults = () => {
-    if (events.length === 0) {
-      alert("Shto të paktën një event.");
+  const removeMatch = (matchId) => {
+    setMatches(matches.filter((match) => match.id !== matchId));
+    setResults([]);
+  };
+
+  const addOption = (matchId) => {
+    setMatches(
+      matches.map((match) =>
+        match.id === matchId
+          ? {
+              ...match,
+              options: [
+                ...match.options,
+                {
+                  id: Date.now(),
+                  name: "",
+                  odd: "",
+                },
+              ],
+            }
+          : match
+      )
+    );
+    setResults([]);
+  };
+
+  const updateOption = (matchId, optionId, field, value) => {
+    setMatches(
+      matches.map((match) =>
+        match.id === matchId
+          ? {
+              ...match,
+              options: match.options.map((option) =>
+                option.id === optionId
+                  ? {
+                      ...option,
+                      [field]: value,
+                    }
+                  : option
+              ),
+            }
+          : match
+      )
+    );
+  };
+
+  const removeOption = (matchId, optionId) => {
+    setMatches(
+      matches.map((match) =>
+        match.id === matchId
+          ? {
+              ...match,
+              options: match.options.filter((option) => option.id !== optionId),
+            }
+          : match
+      )
+    );
+    setResults([]);
+  };
+
+  const calculate = () => {
+    const cleanMatches = matches
+      .map((match) => ({
+        ...match,
+        options: match.options.filter(
+          (option) => option.name.trim() && Number(option.odd) > 1
+        ),
+      }))
+      .filter((match) => match.options.length > 0);
+
+    if (cleanMatches.length === 0) {
+      alert("Shto të paktën një ndeshje me opsione të vlefshme.");
       return;
     }
 
-    const allCombinations = generateCombinations(events);
+    const combos = cartesianCombinations(cleanMatches);
 
-    const calculated = allCombinations.map((combo) => {
+    const calculated = combos.map((combo) => {
       const totalOdd = combo.reduce((acc, item) => acc * item.odd, 1);
-      const totalStake = combo.reduce((acc, item) => acc + item.stake, 0);
-      const averageStake = totalStake / combo.length;
-
-      const potentialReturn = averageStake * totalOdd;
-      const netProfit = potentialReturn - averageStake;
-      const maxLoss = averageStake;
-      const returnPercentage = (netProfit / averageStake) * 100;
+      const potentialReturn = Number(stake) * totalOdd;
+      const netProfit = potentialReturn - Number(stake);
+      const returnPercentage = (netProfit / Number(stake)) * 100;
 
       return {
         combo,
         type: combo.length === 1 ? "Njeshe" : `${combo.length}-she`,
         totalOdd,
-        stake: averageStake,
+        stake: Number(stake),
         potentialReturn,
         netProfit,
-        maxLoss,
+        maxLoss: Number(stake),
         returnPercentage,
       };
     });
 
     calculated.sort((a, b) => b.potentialReturn - a.potentialReturn);
-
     setResults(calculated);
   };
 
-  const totalMaxLoss = results.reduce((acc, item) => acc + item.maxLoss, 0);
-  const maxPossibleProfit =
-    results.length > 0 ? Math.max(...results.map((item) => item.netProfit)) : 0;
-  const maxPossibleReturn =
-    results.length > 0
-      ? Math.max(...results.map((item) => item.potentialReturn))
-      : 0;
+  const totalMaxLoss = results.length * Number(stake);
+  const maxProfit =
+    results.length > 0 ? Math.max(...results.map((r) => r.netProfit)) : 0;
+  const maxReturn =
+    results.length > 0 ? Math.max(...results.map((r) => r.potentialReturn)) : 0;
 
   return (
     <div className="app">
       <div className="container">
-        <header className="header">
+        <header>
           <h1>
-            BET<span>CALC</span>
+            Ersia<span>Dashuria</span>
           </h1>
-          <p>Kalkulator i simulimit të koeficientëve dhe riskut</p>
+          <p>Simulator kombinimesh me shumë opsione për çdo event</p>
         </header>
 
-        <section className="section">
-          <div className="titleLine">
-            <h2>Shto Event</h2>
-          </div>
+        <section className="panel">
+          <h2>Settings</h2>
 
-          <div className="formGrid">
+          <div className="topGrid">
             <div>
-              <label>Emri i Eventit</label>
-              <input
-                value={eventName}
-                onChange={(e) => setEventName(e.target.value)}
-                placeholder="p.sh. Real Madrid vs Barcelona"
-              />
-            </div>
-
-            <div>
-              <label>Rezultati / Opsioni</label>
-              <input
-                value={prediction}
-                onChange={(e) => setPrediction(e.target.value)}
-                placeholder="p.sh. 1X2, 1, X, Over 2.5..."
-              />
-            </div>
-
-            <div>
-              <label>Koeficienti</label>
+              <label>Shuma për kombinim</label>
               <input
                 type="number"
-                step="0.01"
-                value={odd}
-                onChange={(e) => setOdd(e.target.value)}
-                placeholder="p.sh. 2.50"
-              />
-            </div>
-
-            <div>
-              <label>Shuma për Eventin (€)</label>
-              <input
-                type="number"
-                step="0.01"
+                min="1"
                 value={stake}
                 onChange={(e) => setStake(e.target.value)}
-                placeholder="p.sh. 50"
               />
             </div>
 
-            <button className="addBtn" onClick={addEvent}>
-              + Shto
-            </button>
+            <div>
+              <label>Emri i ndeshjes</label>
+              <input
+                value={matchName}
+                onChange={(e) => setMatchName(e.target.value)}
+                placeholder="p.sh. Match 1"
+              />
+            </div>
+
+            <button onClick={addMatch}>+ Shto Ndeshje</button>
           </div>
         </section>
 
-        <section className="section">
-          <div className="titleLine">
-            <h2>Eventet e Shtuara</h2>
-          </div>
-
-          {events.length === 0 ? (
+        <section className="matches">
+          {matches.length === 0 ? (
             <div className="empty">
-              <div className="icon">🎯</div>
-              <p>Nuk ka evente të shtuara ende.</p>
-              <span>Shto eventet tua sipër.</span>
+              <h3>Nuk ka ndeshje ende</h3>
+              <p>Shto një ndeshje dhe pastaj vendos opsionet e saj.</p>
             </div>
           ) : (
-            <div className="eventList">
-              {events.map((event, index) => (
-                <div className="eventCard" key={event.id}>
+            matches.map((match, index) => (
+              <div className="matchCard" key={match.id}>
+                <div className="matchHeader">
+                  <h3>
+                    {index + 1}. {match.name}
+                  </h3>
+
                   <div>
-                    <strong>
-                      {index + 1}. {event.name}
-                    </strong>
-                    <p>{event.prediction}</p>
-                  </div>
+                    <button onClick={() => addOption(match.id)}>
+                      + Opsion
+                    </button>
 
-                  <div className="eventNumbers">
-                    <span>Odd: {event.odd}</span>
-                    <span>{event.stake.toFixed(2)} €</span>
+                    <button
+                      className="danger"
+                      onClick={() => removeMatch(match.id)}
+                    >
+                      Hiq
+                    </button>
                   </div>
-
-                  <button onClick={() => removeEvent(event.id)}>Hiq</button>
                 </div>
-              ))}
-            </div>
+
+                {match.options.length === 0 ? (
+                  <p className="hint">Shto opsione për këtë ndeshje.</p>
+                ) : (
+                  match.options.map((option) => (
+                    <div className="optionRow" key={option.id}>
+                      <input
+                        value={option.name}
+                        placeholder="Opsioni p.sh. 1, X, 2, Over 2.5"
+                        onChange={(e) =>
+                          updateOption(
+                            match.id,
+                            option.id,
+                            "name",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={option.odd}
+                        placeholder="Koef."
+                        onChange={(e) =>
+                          updateOption(
+                            match.id,
+                            option.id,
+                            "odd",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                      <button
+                        className="danger"
+                        onClick={() => removeOption(match.id, option.id)}
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            ))
           )}
         </section>
 
-        <button className="calculateBtn" onClick={calculateResults}>
-           Kalkulo Riskun & Fitimin
+        <button className="calculateBtn" onClick={calculate}>
+          Kalkulo të gjitha kombinimet
         </button>
 
         <section className="summary">
           <div>
-            <span>Evente</span>
-            <strong>{events.length}</strong>
+            <span>Ndeshje</span>
+            <strong>{matches.length}</strong>
           </div>
 
           <div>
-            <span>Kombinime Totale</span>
+            <span>Kombinime</span>
             <strong>{results.length}</strong>
           </div>
 
           <div>
-            <span>Rreziku Maksimal Total</span>
-            <strong>{totalMaxLoss.toFixed(2)} €</strong>
+            <span>Risk maksimal total</span>
+            <strong>{totalMaxLoss.toFixed(2)}</strong>
           </div>
 
           <div>
-            <span>Fitimi Maksimal</span>
-            <strong>{maxPossibleProfit.toFixed(2)} €</strong>
+            <span>Fitim maksimal</span>
+            <strong>{maxProfit.toFixed(2)}</strong>
           </div>
 
           <div>
-            <span>Kthimi Maksimal</span>
-            <strong>{maxPossibleReturn.toFixed(2)} €</strong>
+            <span>Kthim maksimal</span>
+            <strong>{maxReturn.toFixed(2)}</strong>
           </div>
         </section>
 
-        <section className="section">
-          <div className="titleLine">
-            <h2>Të Gjitha Kombinimet e Mundshme</h2>
-          </div>
+        <section className="panel">
+          <h2>Rezultatet</h2>
 
           {results.length === 0 ? (
-            <p className="noResults">Kliko “Kalkulo” për të parë rezultatet.</p>
+            <p className="hint">Kliko kalkulo për të parë kombinimet.</p>
           ) : (
             <div className="tableWrapper">
               <table>
@@ -240,11 +313,11 @@ function App() {
                     <th>#</th>
                     <th>Lloji</th>
                     <th>Kombinimi</th>
-                    <th>Odd Total</th>
+                    <th>Koef. total</th>
                     <th>Shuma</th>
                     <th>Kthimi</th>
-                    <th>Fitimi Neto</th>
-                    <th>Risk Max</th>
+                    <th>Fitimi</th>
+                    <th>Risk</th>
                     <th>%</th>
                   </tr>
                 </thead>
@@ -255,18 +328,18 @@ function App() {
                       <td>{index + 1}</td>
                       <td>{item.type}</td>
                       <td>
-                        {item.combo.map((event) => (
-                          <div className="comboItem" key={event.id}>
-                            <strong>{event.name}</strong> - {event.prediction}{" "}
-                            ({event.odd})
+                        {item.combo.map((c, i) => (
+                          <div className="comboItem" key={i}>
+                            <strong>{c.matchName}</strong>: {c.optionName} (
+                            {c.odd})
                           </div>
                         ))}
                       </td>
                       <td>{item.totalOdd.toFixed(2)}</td>
-                      <td>{item.stake.toFixed(2)} €</td>
-                      <td>{item.potentialReturn.toFixed(2)} €</td>
-                      <td>{item.netProfit.toFixed(2)} €</td>
-                      <td>{item.maxLoss.toFixed(2)} €</td>
+                      <td>{item.stake.toFixed(2)}</td>
+                      <td>{item.potentialReturn.toFixed(2)}</td>
+                      <td>{item.netProfit.toFixed(2)}</td>
+                      <td>{item.maxLoss.toFixed(2)}</td>
                       <td>{item.returnPercentage.toFixed(2)}%</td>
                     </tr>
                   ))}

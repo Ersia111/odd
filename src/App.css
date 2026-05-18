@@ -13,83 +13,65 @@ body {
   min-height: 100vh;
   padding: 30px 18px;
   background:
-    radial-gradient(circle at top left, rgba(255, 184, 48, 0.08), transparent 30%),
+    radial-gradient(circle at top left, rgba(255, 184, 48, 0.1), transparent 28%),
     #080c0f;
 }
 
 .container {
-  max-width: 1150px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-.header {
-  display: flex;
-  align-items: end;
-  gap: 25px;
+header {
   border-bottom: 1px solid #26313a;
-  padding-bottom: 35px;
-  margin-bottom: 35px;
+  padding-bottom: 30px;
+  margin-bottom: 30px;
 }
 
-.header h1 {
+header h1 {
   margin: 0;
-  font-size: 54px;
+  font-size: 52px;
   letter-spacing: 2px;
-  font-weight: 900;
 }
 
-.header h1 span {
+header h1 span {
   color: #ffbd35;
 }
 
-.header p {
+header p {
   color: #8b95a1;
   text-transform: uppercase;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   font-size: 13px;
-  margin-bottom: 10px;
 }
 
-.section {
-  margin-bottom: 34px;
-}
-
-.titleLine {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.panel,
+.matchCard {
+  background: #111820;
+  border: 1px solid #26313a;
+  border-radius: 10px;
+  padding: 22px;
   margin-bottom: 22px;
 }
 
-.titleLine h2 {
+h2 {
   color: #ffbd35;
-  font-size: 24px;
   text-transform: uppercase;
-  margin: 0;
+  margin-top: 0;
 }
 
-.titleLine::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: #26313a;
-}
-
-.formGrid {
+.topGrid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 16px;
-}
-
-.formGrid div {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 14px;
+  align-items: end;
 }
 
 label {
+  display: block;
   color: #9ca3af;
   font-size: 13px;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 8px;
 }
@@ -99,108 +81,73 @@ input {
   background: #161d26;
   border: 1px solid #2b3540;
   color: white;
-  padding: 16px;
+  padding: 15px;
   border-radius: 7px;
   outline: none;
-  font-size: 15px;
 }
 
 input:focus {
   border-color: #ffbd35;
 }
 
-.addBtn {
-  grid-column: 2;
+button {
   background: #ffbd35;
   color: #0b0f13;
   border: none;
+  padding: 14px 18px;
   border-radius: 7px;
   font-weight: bold;
-  font-size: 15px;
-  text-transform: uppercase;
   cursor: pointer;
 }
 
-.empty {
-  text-align: center;
-  padding: 55px 20px;
-  color: #8b95a1;
+button:hover {
+  opacity: 0.9;
 }
 
-.empty .icon {
-  font-size: 45px;
-  margin-bottom: 14px;
+.danger {
+  background: #ef4444;
+  color: white;
+  margin-left: 8px;
 }
 
-.empty p {
+.matches {
+  margin-bottom: 25px;
+}
+
+.matchHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.matchHeader h3 {
   margin: 0;
 }
 
-.empty span {
-  font-size: 14px;
-}
-
-.eventList {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.eventCard {
+.optionRow {
   display: grid;
-  grid-template-columns: 1.5fr 1fr auto;
-  align-items: center;
-  gap: 18px;
-  background: #111820;
-  border: 1px solid #26313a;
-  padding: 16px;
-  border-radius: 8px;
-}
-
-.eventCard strong {
-  color: #fff;
-}
-
-.eventCard p {
-  margin: 6px 0 0;
-  color: #9ca3af;
-}
-
-.eventNumbers {
-  display: flex;
+  grid-template-columns: 2fr 1fr auto;
   gap: 12px;
-  color: #ffbd35;
-}
-
-.eventCard button {
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 11px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
+  margin-bottom: 12px;
 }
 
 .calculateBtn {
   width: 100%;
+  padding: 18px;
+  font-size: 18px;
+  text-transform: uppercase;
   background: linear-gradient(90deg, #ff4b00, #ffbd35);
   color: white;
-  padding: 18px;
-  border: none;
-  border-radius: 8px;
-  text-transform: uppercase;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  margin: 20px 0 34px;
+  margin-bottom: 26px;
 }
 
 .summary {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 14px;
-  margin-bottom: 35px;
+  margin-bottom: 28px;
 }
 
 .summary div {
@@ -222,15 +169,18 @@ input:focus {
   font-size: 22px;
 }
 
-.noResults {
-  color: #9ca3af;
+.empty {
+  text-align: center;
+  padding: 45px;
+  color: #8b95a1;
+}
+
+.hint {
+  color: #8b95a1;
 }
 
 .tableWrapper {
   overflow-x: auto;
-  background: #111820;
-  border: 1px solid #26313a;
-  border-radius: 8px;
 }
 
 table {
@@ -241,7 +191,7 @@ table {
 
 th,
 td {
-  padding: 15px;
+  padding: 14px;
   border-bottom: 1px solid #26313a;
   text-align: left;
   vertical-align: top;
@@ -249,8 +199,8 @@ td {
 
 th {
   color: #ffbd35;
-  font-size: 13px;
   text-transform: uppercase;
+  font-size: 13px;
 }
 
 td {
@@ -267,26 +217,18 @@ td {
 }
 
 @media (max-width: 850px) {
-  .header {
-    display: block;
-  }
-
-  .header h1 {
-    font-size: 42px;
-  }
-
-  .formGrid,
-  .eventCard,
+  .topGrid,
+  .optionRow,
   .summary {
     grid-template-columns: 1fr;
   }
 
-  .addBtn {
-    grid-column: auto;
-    padding: 16px;
+  .matchHeader {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .eventNumbers {
-    flex-direction: column;
+  header h1 {
+    font-size: 38px;
   }
 }

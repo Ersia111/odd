@@ -377,4 +377,27 @@ td {
     flex-direction: column;
   }
 }
+.buttonsGroup {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.analysisBtn {
+  width: 100%;
+  padding: 18px;
+  background: #22c55e;
+  color: #08100b;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.analysisBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 }

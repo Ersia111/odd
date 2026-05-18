@@ -133,6 +133,25 @@ function App() {
     results.length > 0 ? Math.max(...results.map((item) => item.netProfit)) : 0;
 
   const breakEvenPoint = Number(totalBudget);
+  const lowestWinningReturn =
+  results.length > 0
+    ? Math.min(...results.map((item) => item.potentialReturn))
+    : 0;
+
+const highestWinningReturn =
+  results.length > 0
+    ? Math.max(...results.map((item) => item.potentialReturn))
+    : 0;
+
+const worstRealisticLoss =
+  Number(totalBudget) - lowestWinningReturn;
+
+const bestRealisticProfit =
+  highestWinningReturn - Number(totalBudget);
+
+const guaranteedWinner =
+  results.length > 0;
+  
 
   const expectedValue =
     (Number(winChance) / 100) * Number(targetProfit) -
@@ -250,9 +269,19 @@ function App() {
               )}
             </section>
 
-            <button className="calculateBtn" onClick={calculateResults}>
-              Kalkulo Kombinimet
-            </button>
+           <div className="buttonsGroup">
+  <button className="calculateBtn" onClick={calculateResults}>
+    Kalkulo Kombinimet
+  </button>
+
+  <button
+    className="analysisBtn"
+    onClick={() => setPage("analysis")}
+    disabled={results.length === 0}
+  >
+    Shiko Analizën
+  </button>
+</div>
 
             <section className="summary">
               <div>
@@ -342,6 +371,30 @@ function App() {
               </div>
 
               <div className="analysisGrid">
+                <div className="analysisCard">
+  <span>Guaranteed Winner</span>
+  <strong>{guaranteedWinner ? "YES" : "NO"}</strong>
+</div>
+
+<div className="analysisCard">
+  <span>Lowest Winning Return</span>
+  <strong>{lowestWinningReturn.toFixed(2)} €</strong>
+</div>
+
+<div className="analysisCard dangerCard">
+  <span>Worst Realistic Loss</span>
+  <strong>-{worstRealisticLoss.toFixed(2)} €</strong>
+</div>
+
+<div className="analysisCard">
+  <span>Highest Winning Return</span>
+  <strong>{highestWinningReturn.toFixed(2)} €</strong>
+</div>
+
+<div className="analysisCard">
+  <span>Best Realistic Profit</span>
+  <strong>{bestRealisticProfit.toFixed(2)} €</strong>
+</div>
                 <div className="analysisCard">
                   <span>Total Budget</span>
                   <strong>{Number(totalBudget).toFixed(2)} €</strong>
